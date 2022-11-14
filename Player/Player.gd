@@ -3,6 +3,7 @@ extends KinematicBody2D # Always extend the node we're attaching the script to.
 # Movement variables
 const ACCELERATION = 500
 const MAX_SPEED = 80
+const ROLL_SPEED = 125
 const FRICTION = 600
 
 enum {
@@ -13,6 +14,7 @@ enum {
 
 var state = MOVE
 var velocity = Vector2.ZERO
+var roll_vector = Vector2.LEFT
 
 # Animation variables
 #
@@ -28,6 +30,7 @@ func _ready():
 	# Start animations playing
 	animationTree.active = true
 
+
 func _physics_process(delta):
 	# Match statement ~ switch statement
 	match state:
@@ -35,10 +38,12 @@ func _physics_process(delta):
 			move_state(delta)
 		
 		ROLL:
-			pass
+			roll_state(delta)
 			
 		ATTACK:
 			attack_state(delta)
+
+
 
 func move_state(delta):
 	var input_vector = Vector2.ZERO
@@ -49,12 +54,19 @@ func move_state(delta):
 	# MOVEMENT INPUT HANDLING
 	# If non-zero input - perform code
 	if input_vector != Vector2.ZERO:
+
+		# Ensure roll is same direction as movement
+		roll_vector = input_vector
+
+
 		# Set blend position to the input vector to tie animation to movement direction
 		animationTree.set("parameters/Run/blend_position", input_vector)
 		# Important to set Idle as well as Run so that idle transition after running faces correct
 		animationTree.set("parameters/Idle/blend_position", input_vector)
 		# Same as above for attack
 		animationTree.set("parameters/Attack/blend_position", input_vector)
+		# Same as above for roll
+		animationTree.set("parameters/Roll/blend_position", input_vector)
 		
 		# Transition to 'Run' blend space
 		animationState.travel("Run")
@@ -63,19 +75,40 @@ func move_state(delta):
 		animationState.travel("Idle")
 		velocity = velocity.move_toward(Vector2.ZERO, FRICTION * delta)
 		
-	# move_and_slide returns the "leftover velocity" after the collision
-	velocity = move_and_slide(velocity)
+	move()
 
 	# Transition to ATTACK state
 	if Input.is_action_just_pressed("attack"):
 		state = ATTACK
 
+	# Transition to ROLL state
+	if Input.is_action_just_pressed("roll"):
+		state = ROLL
 
 
-func attack_state(delta):
+func roll_state(delta):
+	velocity = roll_vector * ROLL_SPEED
+	animationState.travel("Roll")
+	move()
+
+
+func attack_state(_delta):
 	velocity = Vector2.ZERO
 	animationState.travel("Attack")
 
+
+func move():
+	# move_and_slide returns the "leftover velocity" after the collision
+	velocity = move_and_slide(velocity)
+
+
+func roll_animation_finished():
+	velocity = velocity * 0.8
+	state = MOVE
+
+
 func attack_animation_finished():
 	state = MOVE
-	
+
+
+
