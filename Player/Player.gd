@@ -24,12 +24,11 @@ onready var animationTree = $AnimationTree
 # Get access to the animation state in order to set the proper animation (e.g. Idle or Run)
 onready var animationState = animationTree.get("parameters/playback")
 
-
 func _ready():
 	# Start animations playing
 	animationTree.active = true
 
-func _process(delta):
+func _physics_process(delta):
 	# Match statement ~ switch statement
 	match state:
 		MOVE:
